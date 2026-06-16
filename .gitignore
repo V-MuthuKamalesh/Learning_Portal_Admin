@@ -1,0 +1,14 @@
+/node_modules
+/.next
+/out
+/dist
+/build
+/coverage
+/logs
+/tmp
+/cache
+/temp
+/var
+/tmp
+/cache
+/temp
