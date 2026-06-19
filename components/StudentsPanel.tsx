@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 import { PageHeader } from "./PageHeader";
 import { Modal } from "./Modal";
 import { bulkImportStudents, createStudent, downloadImportTemplate, listStudents, Student } from "../lib/api";
@@ -110,8 +110,9 @@ export function StudentsPanel() {
         onAction={() => setModalOpen(true)}
       />
 
-      <label className="search pageSearch">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search students" />
+      <label className="pageSearch">
+        <Search size={16} />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, register or email…" />
       </label>
 
       {error && <p className="error">{error}</p>}

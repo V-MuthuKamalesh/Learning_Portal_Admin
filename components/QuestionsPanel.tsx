@@ -181,14 +181,10 @@ export function QuestionsPanel() {
 
       <Modal open={modalOpen} title="Add question" onClose={() => { setModalOpen(false); resetForm(); }}>
         <div className="tabRow">
-          <button className={mode === "mcq" ? "primary compact" : "secondary compact"} type="button" onClick={() => setMode("mcq")}>
+          <button className={mode === "mcq" ? "active" : ""} type="button" onClick={() => setMode("mcq")}>
             MCQ
           </button>
-          <button
-            className={mode === "programming" ? "primary compact" : "secondary compact"}
-            type="button"
-            onClick={() => setMode("programming")}
-          >
+          <button className={mode === "programming" ? "active" : ""} type="button" onClick={() => setMode("programming")}>
             Programming
           </button>
         </div>

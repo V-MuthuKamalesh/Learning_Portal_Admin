@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BarChart2, Users, ClipboardList, TrendingUp } from "lucide-react";
 import { PageHeader } from "./PageHeader";
 import { getAnalytics } from "../lib/api";
 import { getSession } from "../lib/auth";
@@ -19,15 +20,15 @@ export function AnalyticsPanel() {
     <>
       <PageHeader title="Analytics" note="Department and assessment performance insights" hideAction />
       <section className="metrics">
-        <Metric label="Students" value={String(data.stats?.students ?? "—")} />
-        <Metric label="Assessments" value={String(data.stats?.assessments ?? "—")} />
-        <Metric label="Average score" value={data.average_score != null ? `${Math.round(data.average_score)}%` : "—"} />
-        <Metric label="Graded attempts" value={String(data.results_count ?? "—")} />
+        <Metric label="Students" value={String(data.stats?.students ?? "—")} icon={Users} color="#3b82f6" />
+        <Metric label="Assessments" value={String(data.stats?.assessments ?? "—")} icon={ClipboardList} color="#8b5cf6" />
+        <Metric label="Average score" value={data.average_score != null ? `${Math.round(data.average_score)}%` : "—"} icon={TrendingUp} color="#10b981" />
+        <Metric label="Graded attempts" value={String(data.results_count ?? "—")} icon={BarChart2} color="#f59e0b" />
       </section>
       <section className="panel">
-        <h2>Insights</h2>
-        <p className="activity">Live analytics are loaded from `/analytics/dashboard`.</p>
-        <p className="activity">Use Results to drill into individual assessment outcomes.</p>
+        <h2>Performance insights</h2>
+        <p className="activity">Live analytics are pulled from the API in real time. Average score reflects all graded assessment attempts.</p>
+        <p className="activity">Navigate to <strong>Results</strong> to drill into individual student outcomes and export data.</p>
       </section>
     </>
   );

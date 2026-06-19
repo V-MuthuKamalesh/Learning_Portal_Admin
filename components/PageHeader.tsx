@@ -14,8 +14,8 @@ export function PageHeader({ title, note, actionLabel = "New", onAction, hideAct
   return (
     <div className="titleRow">
       <div>
-        {note && <p className="eyebrow">{note}</p>}
         <h1>{title}</h1>
+        {note && <p className="pageSubtitle">{note}</p>}
       </div>
       {!hideAction && onAction && (
         <button className="primary" type="button" onClick={onAction}>

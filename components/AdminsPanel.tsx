@@ -66,10 +66,14 @@ export function AdminsPanel() {
           <tbody>
             {admins.map((admin) => (
               <tr key={admin.id}>
-                <td>{admin.name}</td>
-                <td>{admin.email}</td>
+                <td><strong>{admin.name}</strong></td>
+                <td><small style={{ color: "var(--muted)" }}>{admin.email}</small></td>
                 <td>{admin.role?.name || "—"}</td>
-                <td>{admin.is_active ? "Active" : "Inactive"}</td>
+                <td>
+                  <span className={admin.is_active ? "ok" : "muted"}>
+                    {admin.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
