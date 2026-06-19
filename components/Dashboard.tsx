@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { Users, ClipboardList, Layers, HelpCircle, Key, UserPlus } from "lucide-react";
 import { PageHeader } from "./PageHeader";
 import { Modal } from "./Modal";
 import { Metric } from "./Metric";
@@ -31,28 +32,49 @@ export function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        note="Connected admin workspace"
         actionLabel="Add student"
         onAction={() => setModalOpen(true)}
       />
 
       <section className="metrics">
-        <Metric label="Students" value={loading ? "…" : String(stats.students)} />
-        <Metric label="Assessments" value={loading ? "…" : String(stats.assessments)} />
-        <Metric label="Groups" value={loading ? "…" : String(stats.groups)} />
-        <Metric label="Questions" value={loading ? "…" : String(stats.questions)} />
+        <Metric label="Students" value={loading ? "…" : String(stats.students)} icon={Users} color="#3b82f6" />
+        <Metric label="Assessments" value={loading ? "…" : String(stats.assessments)} icon={ClipboardList} color="#8b5cf6" />
+        <Metric label="Groups" value={loading ? "…" : String(stats.groups)} icon={Layers} color="#f59e0b" />
+        <Metric label="Questions" value={loading ? "…" : String(stats.questions)} icon={HelpCircle} color="#10b981" />
       </section>
 
       <section className="gridTwo">
         <div className="panel">
-          <h2>Live data</h2>
-          <p className="activity">Student, group, assessment and question counts are loaded from the API.</p>
-          <p className="activity">Use Students, Groups, Questions and Assessments pages to manage records.</p>
+          <h2>Quick actions</h2>
+          <p className="activity" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <UserPlus size={15} style={{ color: "var(--accent)", flexShrink: 0 }} />
+            Go to <strong>Students</strong> to enroll new students and manage existing accounts.
+          </p>
+          <p className="activity" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <ClipboardList size={15} style={{ color: "var(--accent)", flexShrink: 0 }} />
+            Go to <strong>Assessments</strong> to create and publish tests for student groups.
+          </p>
+          <p className="activity" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <HelpCircle size={15} style={{ color: "var(--accent)", flexShrink: 0 }} />
+            Go to <strong>Questions</strong> to build your question bank (MCQ &amp; coding).
+          </p>
         </div>
         <div className="panel">
-          <h2>Getting started</h2>
-          <p className="activity">Demo student login: college code SMV2026, register CSE22001, email student@demo.edu, password CSE22001</p>
-          <p className="activity">Admin login: superadmin@smv.edu / Admin@123</p>
+          <h2>Demo credentials</h2>
+          <p className="activity" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <Key size={15} style={{ color: "var(--muted)", flexShrink: 0, marginTop: 3 }} />
+            <span>
+              <strong>Student</strong> — College: SMV2026 · Reg: CSE22001<br />
+              <span style={{ color: "var(--muted)", fontSize: 12.5 }}>student@demo.edu / CSE22001</span>
+            </span>
+          </p>
+          <p className="activity" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <Key size={15} style={{ color: "var(--muted)", flexShrink: 0, marginTop: 3 }} />
+            <span>
+              <strong>Admin</strong> — superadmin@smv.edu<br />
+              <span style={{ color: "var(--muted)", fontSize: 12.5 }}>Admin@123</span>
+            </span>
+          </p>
         </div>
       </section>
 
