@@ -27,7 +27,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
       <div className="modalPanel" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modalHeader">
           <h2>{title}</h2>
-          <button type="button" className="icon modalClose" onClick={onClose} aria-label="Close">
+          <button type="button" className="modalClose" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
