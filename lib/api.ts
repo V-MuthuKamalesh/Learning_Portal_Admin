@@ -66,6 +66,8 @@ export type Assessment = {
   negative_marks?: number;
   shuffle_questions?: boolean;
   coding_scoring_mode?: string;
+  company?: string;
+  tags?: string;
 };
 
 export type DashboardStats = {

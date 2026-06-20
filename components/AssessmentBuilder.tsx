@@ -83,6 +83,8 @@ export function AssessmentBuilder() {
         negative_marks: Number(data.get("negative_marks") || 0.25),
         shuffle_questions: data.get("shuffle_questions") === "on",
         coding_scoring_mode: String(data.get("coding_scoring_mode") || "weighted"),
+        company: String(data.get("company") || ""),
+        tags: String(data.get("tags") || ""),
       });
       setAssessments((prev) => [created, ...prev]);
       event.currentTarget.reset();
@@ -194,9 +196,10 @@ export function AssessmentBuilder() {
             <tr>
               <th>Title</th>
               <th>Type</th>
+              <th>Company</th>
+              <th>Tags</th>
               <th>Duration</th>
               <th>Marks</th>
-              <th>Scoring</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -206,13 +209,10 @@ export function AssessmentBuilder() {
               <tr key={a.id} className={selected?.id === a.id ? "rowSelected" : ""}>
                 <td><strong>{a.title}</strong></td>
                 <td><span className="statusBadge">{a.type}</span></td>
+                <td>{a.company ? <span className="statusBadge badgePurple">{a.company}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
+                <td style={{ fontSize: 12 }}>{a.tags || <span style={{ color: "var(--muted)" }}>—</span>}</td>
                 <td>{a.duration_minutes ?? 60} min</td>
                 <td>{a.total_marks ?? "—"}</td>
-                <td>
-                  <span className={`statusBadge ${a.coding_scoring_mode === "attempt_penalty" ? "badgeAmber" : ""}`}>
-                    {a.coding_scoring_mode === "attempt_penalty" ? "Attempt penalty" : "Weighted"}
-                  </span>
-                </td>
                 <td><span className="statusBadge">{a.status}</span></td>
                 <td>
                   {a.status === "draft" && (
@@ -347,6 +347,8 @@ export function AssessmentBuilder() {
                 <div>
                   <strong>{selected.title}</strong>
                   <span>{selected.type} · {selected.duration_minutes ?? 60} min · {selected.total_marks ?? "?"} marks</span>
+                  {selected.company && <span>🏢 Target company: <strong>{selected.company}</strong></span>}
+                  {selected.tags && <span>🏷 Tags: {selected.tags}</span>}
                 </div>
               </div>
               <div className="stepActions">
@@ -374,6 +376,18 @@ export function AssessmentBuilder() {
             <input name="total_marks" type="number" min={1} defaultValue={100} placeholder="Total marks" />
           </div>
           <input name="passing_marks" type="number" min={0} defaultValue={40} placeholder="Passing marks" />
+
+          <fieldset className="optionFieldset">
+            <legend>Placement / Company targeting (optional)</legend>
+            <input
+              name="company"
+              placeholder="Target company — e.g. TCS, Infosys, Wipro (leave blank for general)"
+            />
+            <input
+              name="tags"
+              placeholder="Tags — comma separated, e.g. aptitude,verbal,placement,logical"
+            />
+          </fieldset>
 
           <fieldset className="optionFieldset">
             <legend>MCQ settings</legend>
