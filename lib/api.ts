@@ -282,3 +282,105 @@ export async function exportResultsCSV(token: string) {
   if (!res.ok) throw new Error("Export failed");
   return res.blob();
 }
+
+// ── Practice Modules ──────────────────────────────────────────────────────────
+
+export type PracticeModule = {
+  id: string;
+  name: string;
+  category: string; // "mcq" | "coding" | "mixed"
+  description?: string;
+  tags?: string;
+  is_published: boolean;
+  ord: number;
+  created_at?: string;
+};
+
+export type ModuleQuestionSlot = {
+  id: string;
+  question_id: string;
+  ord: number;
+  marks: number;       // 0 = inherit from question
+  max_attempts: number; // 0 = unlimited
+  question?: {
+    id: string;
+    type: string;
+    topic?: string;
+    difficulty?: string;
+    marks: number;
+    title?: string; // coding
+    body?: string;  // mcq
+  };
+};
+
+export async function listPracticeModules(token: string) {
+  return apiFetch<PracticeModule[]>("/practice/modules", token);
+}
+
+export async function createPracticeModule(token: string, body: {
+  name: string; category?: string; description?: string; tags?: string; ord?: number;
+}) {
+  return apiFetch<PracticeModule>("/practice/modules", token, { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function updatePracticeModule(token: string, id: string, body: {
+  name?: string; category?: string; description?: string; tags?: string; is_published?: boolean; ord?: number;
+}) {
+  return apiFetch<PracticeModule>(`/practice/modules/${id}`, token, { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function deletePracticeModule(token: string, id: string) {
+  return apiFetch<{ deleted: boolean }>(`/practice/modules/${id}`, token, { method: "DELETE" });
+}
+
+export async function listModuleQuestions(token: string, moduleId: string) {
+  return apiFetch<ModuleQuestionSlot[]>(`/practice/modules/${moduleId}/questions`, token);
+}
+
+export async function addModuleQuestions(token: string, moduleId: string, questions: Array<{
+  question_id: string; ord?: number; marks?: number; max_attempts?: number;
+}>) {
+  return apiFetch<{ added: number; failed: number; errors?: string[] }>(
+    `/practice/modules/${moduleId}/questions`, token,
+    { method: "POST", body: JSON.stringify({ questions }) }
+  );
+}
+
+export async function updateModuleQuestionSlot(token: string, moduleId: string, questionId: string, body: {
+  marks?: number; max_attempts?: number; ord?: number;
+}) {
+  return apiFetch<{ updated: boolean }>(
+    `/practice/modules/${moduleId}/questions/${questionId}`, token,
+    { method: "PATCH", body: JSON.stringify(body) }
+  );
+}
+
+export async function removeModuleQuestion(token: string, moduleId: string, questionId: string) {
+  return apiFetch<{ removed: boolean }>(
+    `/practice/modules/${moduleId}/questions/${questionId}`, token,
+    { method: "DELETE" }
+  );
+}
+
+export async function reorderModuleQuestions(token: string, moduleId: string, questionIds: string[]) {
+  return apiFetch<{ reordered: boolean }>(
+    `/practice/modules/${moduleId}/questions/reorder`, token,
+    { method: "PUT", body: JSON.stringify({ question_ids: questionIds }) }
+  );
+}
+
+// ── Bulk Import ───────────────────────────────────────────────────────────────
+
+export async function bulkImportMCQ(token: string, questions: unknown[]) {
+  return apiFetch<BulkImportResult>("/questions/bulk/mcq", token, {
+    method: "POST",
+    body: JSON.stringify({ questions })
+  });
+}
+
+export async function bulkImportCoding(token: string, questions: unknown[]) {
+  return apiFetch<BulkImportResult>("/questions/bulk/coding", token, {
+    method: "POST",
+    body: JSON.stringify({ questions })
+  });
+}

@@ -4,8 +4,10 @@ import {
   CheckCircle2,
   ClipboardList,
   FileDown,
+  FolderOpen,
   GraduationCap,
   Shield,
+  Upload,
   Users
 } from "lucide-react";
 
@@ -26,13 +28,15 @@ export const fallbackStudents: Student[] = [
 ];
 
 export const adminNav = [
-  { label: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { label: "Students", href: "/students", icon: GraduationCap },
-  { label: "Groups", href: "/groups", icon: Users },
-  { label: "Questions", href: "/questions", icon: BookOpen },
+  { label: "Dashboard",  href: "/dashboard",  icon: BarChart3 },
+  { label: "Students",   href: "/students",   icon: GraduationCap },
+  { label: "Groups",     href: "/groups",     icon: Users },
+  { label: "Questions",  href: "/questions",  icon: BookOpen },
+  { label: "Practice",   href: "/practice",   icon: FolderOpen },
+  { label: "Import",     href: "/import",     icon: Upload },
   { label: "Assessments", href: "/assessments", icon: ClipboardList },
-  { label: "Results", href: "/results", icon: CheckCircle2 },
-  { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Admins", href: "/admins", icon: Shield },
-  { label: "Reports", href: "/reports", icon: FileDown }
+  { label: "Results",    href: "/results",    icon: CheckCircle2 },
+  { label: "Analytics",  href: "/analytics",  icon: BarChart3 },
+  { label: "Admins",     href: "/admins",     icon: Shield },
+  { label: "Reports",    href: "/reports",    icon: FileDown },
 ];
