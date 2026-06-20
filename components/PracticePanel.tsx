@@ -3,44 +3,30 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   ChevronDown, ChevronRight, FolderOpen, Folder, Plus, Trash2,
-  Pencil, Check, X, GripVertical, Eye, EyeOff, BookOpen, Code2
+  Pencil, Check, X, Eye, EyeOff, BookOpen, Code2, Search,
 } from "lucide-react";
 import {
   listPracticeModules, createPracticeModule, updatePracticeModule,
   deletePracticeModule, listModuleQuestions, addModuleQuestions,
   updateModuleQuestionSlot, removeModuleQuestion, listQuestions,
-  type PracticeModule, type ModuleQuestionSlot, type Question
+  type PracticeModule, type ModuleQuestionSlot, type Question,
 } from "../lib/api";
 import { getSession } from "../lib/auth";
+import { Modal } from "./Modal";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-const CATEGORIES = ["mixed", "mcq", "coding"] as const;
-const DIFFICULTIES = ["easy", "medium", "hard"];
-const categoryLabel = (c: string) =>
-  c === "mcq" ? "MCQ" : c === "coding" ? "Coding" : "Mixed";
-const categoryColor = (c: string) =>
-  c === "mcq" ? "bg-blue-100 text-blue-700" :
-  c === "coding" ? "bg-purple-100 text-purple-700" :
-  "bg-green-100 text-green-700";
-const diffColor = (d: string) =>
-  d === "easy" ? "text-green-600" : d === "medium" ? "text-yellow-600" : "text-red-600";
+const CAT_COLOR: Record<string, string> = {
+  mcq: "var(--accent)",
+  coding: "#8b5cf6",
+  mixed: "#f59e0b",
+};
 
-// ── Modal helper ──────────────────────────────────────────────────────────────
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
-        </div>
-        <div className="overflow-y-auto flex-1 p-4">{children}</div>
-      </div>
-    </div>
-  );
-}
+const DIFF_COLOR: Record<string, string> = {
+  easy: "#16a34a",
+  medium: "#d97706",
+  hard: "#dc2626",
+};
 
 // ── Module form ───────────────────────────────────────────────────────────────
 
@@ -65,50 +51,63 @@ function ModuleForm({ initial, onSave, onCancel }: {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError("Name is required"); return; }
+    if (!form.name.trim()) { setError("Folder name is required"); return; }
     setSaving(true);
+    setError("");
     try { await onSave(form); } catch (err: unknown) { setError((err as Error).message); }
     finally { setSaving(false); }
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "9px 12px", border: "1px solid var(--line)",
+    borderRadius: 8, background: "var(--bg)", color: "var(--ink)",
+    fontSize: 13.5, outline: "none",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block", fontSize: 12.5, fontWeight: 600,
+    color: "var(--ink-2)", marginBottom: 5,
+  };
+
   return (
-    <form onSubmit={submit} className="space-y-3">
-      {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>}
+    <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {error && (
+        <p style={{ fontSize: 13, color: "#dc2626", background: "#fef2f2", padding: "8px 12px", borderRadius: 6 }}>
+          {error}
+        </p>
+      )}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Folder Name *</label>
+        <label style={labelStyle}>Folder Name *</label>
         <input value={form.name} onChange={e => set("name", e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          placeholder="e.g. Arrays & Hashing" />
+          style={inputStyle} placeholder="e.g. Arrays & Hashing" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-        <select value={form.category} onChange={e => set("category", e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-          {CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+        <label style={labelStyle}>Category</label>
+        <select value={form.category} onChange={e => set("category", e.target.value)} style={inputStyle}>
+          <option value="mixed">Mixed (MCQ + Coding)</option>
+          <option value="mcq">MCQ only</option>
+          <option value="coding">Coding only</option>
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={2}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        <label style={labelStyle}>Description</label>
+        <textarea value={form.description} onChange={e => set("description", e.target.value)}
+          rows={2} style={{ ...inputStyle, resize: "vertical" }}
           placeholder="What will students practise here?" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Topic Tags</label>
+        <label style={labelStyle}>Topic Tags</label>
         <input value={form.tags} onChange={e => set("tags", e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          placeholder="Arrays, Sorting, DP (comma-separated)" />
+          style={inputStyle} placeholder="Arrays, Sorting, DP (comma-separated)" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Order</label>
-        <input type="number" value={form.ord} onChange={e => set("ord", e.target.value)} min={0}
-          className="w-24 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        <label style={labelStyle}>Order</label>
+        <input type="number" value={form.ord} onChange={e => set("ord", e.target.value)}
+          min={0} style={{ ...inputStyle, width: 100 }} />
       </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm rounded-lg border text-gray-600 hover:bg-gray-50">Cancel</button>
-        <button type="submit" disabled={saving}
-          className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+      <div className="modalActions">
+        <button type="button" className="secondary" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="primary" disabled={saving}>
           {saving ? "Saving…" : "Save"}
         </button>
       </div>
@@ -116,7 +115,7 @@ function ModuleForm({ initial, onSave, onCancel }: {
   );
 }
 
-// ── Question slot row (inside module) ─────────────────────────────────────────
+// ── Slot row ──────────────────────────────────────────────────────────────────
 
 function SlotRow({ slot, onRemove, onUpdate }: {
   slot: ModuleQuestionSlot;
@@ -128,68 +127,82 @@ function SlotRow({ slot, onRemove, onUpdate }: {
   const [attempts, setAttempts] = useState(String(slot.max_attempts));
   const q = slot.question;
 
-  const save = () => {
-    onUpdate(Number(marks), Number(attempts));
-    setEditing(false);
-  };
+  const save = () => { onUpdate(Number(marks), Number(attempts)); setEditing(false); };
 
   return (
-    <div className="flex items-start gap-3 p-3 bg-white border rounded-lg group hover:border-indigo-300 transition-colors">
-      <GripVertical size={16} className="text-gray-300 mt-1 shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          {q?.type === "coding"
-            ? <Code2 size={14} className="text-purple-500 shrink-0" />
-            : <BookOpen size={14} className="text-blue-500 shrink-0" />}
-          <span className="text-sm font-medium text-gray-800 truncate">
+    <div style={{
+      display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px",
+      background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8,
+    }}>
+      <div style={{ paddingTop: 2, flexShrink: 0 }}>
+        {q?.type === "coding"
+          ? <Code2 size={14} style={{ color: "#8b5cf6" }} />
+          : <BookOpen size={14} style={{ color: "var(--accent)" }} />}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {q?.title || q?.body || slot.question_id}
           </span>
           {q?.difficulty && (
-            <span className={`text-xs font-medium ${diffColor(q.difficulty)}`}>{q.difficulty}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: DIFF_COLOR[q.difficulty] ?? "var(--muted)" }}>
+              {q.difficulty}
+            </span>
           )}
-          {q?.topic && <span className="text-xs text-gray-400">{q.topic}</span>}
+          {q?.topic && <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{q.topic}</span>}
         </div>
         {editing ? (
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <label className="text-xs text-gray-500 flex items-center gap-1">
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+            <label style={{ fontSize: 12, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>
               Marks
               <input type="number" value={marks} onChange={e => setMarks(e.target.value)} min={0}
-                className="w-16 ml-1 border rounded px-2 py-0.5 text-xs" />
-              <span className="text-gray-400">(0=inherit)</span>
+                style={{ width: 60, padding: "2px 6px", border: "1px solid var(--line)", borderRadius: 5, fontSize: 12 }} />
+              <span style={{ color: "var(--muted)", fontSize: 11 }}>(0=inherit)</span>
             </label>
-            <label className="text-xs text-gray-500 flex items-center gap-1">
+            <label style={{ fontSize: 12, color: "var(--muted)", display: "flex", alignItems: "center", gap: 6 }}>
               Max Attempts
               <input type="number" value={attempts} onChange={e => setAttempts(e.target.value)} min={0}
-                className="w-16 ml-1 border rounded px-2 py-0.5 text-xs" />
-              <span className="text-gray-400">(0=unlimited)</span>
+                style={{ width: 60, padding: "2px 6px", border: "1px solid var(--line)", borderRadius: 5, fontSize: 12 }} />
+              <span style={{ color: "var(--muted)", fontSize: 11 }}>(0=∞)</span>
             </label>
-            <button onClick={save} className="text-green-600 hover:text-green-700"><Check size={14} /></button>
-            <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+            <button onClick={save} style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a", padding: 2 }}>
+              <Check size={15} />
+            </button>
+            <button onClick={() => setEditing(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 2 }}>
+              <X size={15} />
+            </button>
           </div>
         ) : (
-          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-            <span>Marks: <b className="text-gray-600">{slot.marks || q?.marks || "—"}</b></span>
-            <span>Attempts: <b className="text-gray-600">{slot.max_attempts > 0 ? slot.max_attempts : "∞"}</b></span>
-            <button onClick={() => setEditing(true)} className="text-indigo-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
+              Marks: <strong style={{ color: "var(--ink-2)" }}>{slot.marks || q?.marks || "—"}</strong>
+            </span>
+            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
+              Attempts: <strong style={{ color: "var(--ink-2)" }}>{slot.max_attempts > 0 ? slot.max_attempts : "∞"}</strong>
+            </span>
+            <button onClick={() => setEditing(true)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", padding: 2, marginLeft: 4 }}>
               <Pencil size={12} />
             </button>
           </div>
         )}
       </div>
-      <button onClick={onRemove} className="text-red-300 hover:text-red-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+      <button onClick={onRemove}
+        style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: 4, flexShrink: 0, marginTop: 2 }}>
         <Trash2 size={14} />
       </button>
     </div>
   );
 }
 
-// ── Add questions picker ──────────────────────────────────────────────────────
+// ── Add questions modal ───────────────────────────────────────────────────────
 
 function AddQuestionsModal({ moduleId, token, existingIds, onDone, onClose }: {
   moduleId: string; token: string; existingIds: Set<string>;
   onDone: () => void; onClose: () => void;
 }) {
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [loadingQ, setLoadingQ] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "mcq" | "coding">("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -197,7 +210,10 @@ function AddQuestionsModal({ moduleId, token, existingIds, onDone, onClose }: {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    listQuestions(token).then(setAllQuestions).catch(() => {});
+    listQuestions(token)
+      .then(setAllQuestions)
+      .catch(() => setError("Could not load questions"))
+      .finally(() => setLoadingQ(false));
   }, [token]);
 
   const visible = allQuestions.filter(q => {
@@ -218,6 +234,7 @@ function AddQuestionsModal({ moduleId, token, existingIds, onDone, onClose }: {
   const confirm = async () => {
     if (selected.size === 0) return;
     setAdding(true);
+    setError("");
     try {
       const questions = Array.from(selected).map((id, i) => ({ question_id: id, ord: i }));
       await addModuleQuestions(token, moduleId, questions);
@@ -230,55 +247,113 @@ function AddQuestionsModal({ moduleId, token, existingIds, onDone, onClose }: {
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8,
+    background: "var(--bg)", color: "var(--ink)", fontSize: 13.5, outline: "none",
+  };
+
   return (
-    <Modal title={`Add Questions (${selected.size} selected)`} onClose={onClose}>
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-      <div className="flex gap-2 mb-3">
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by title or topic…"
-          className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+    <Modal open={true} title={`Add Questions${selected.size > 0 ? ` (${selected.size} selected)` : ""}`} onClose={onClose}>
+      {error && (
+        <p style={{ fontSize: 13, color: "#dc2626", background: "#fef2f2", padding: "8px 12px", borderRadius: 6, marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
+
+      {/* Search + filter bar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
+          <Search size={14} style={{ position: "absolute", left: 10, color: "var(--muted)" }} />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by title or topic…"
+            style={{ ...inputStyle, width: "100%", paddingLeft: 32 }}
+          />
+        </div>
         <select value={filter} onChange={e => setFilter(e.target.value as "all" | "mcq" | "coding")}
-          className="border rounded-lg px-2 py-2 text-sm">
-          <option value="all">All</option>
-          <option value="mcq">MCQ</option>
-          <option value="coding">Coding</option>
+          style={{ ...inputStyle, width: "auto" }}>
+          <option value="all">All types</option>
+          <option value="mcq">MCQ only</option>
+          <option value="coding">Coding only</option>
         </select>
       </div>
-      <div className="space-y-1 max-h-72 overflow-y-auto">
-        {visible.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-8">No questions found</p>
+
+      {/* Stats row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>
+          {loadingQ ? "Loading…" : `${visible.length} available`}
+        </span>
+        {selected.size > 0 && (
+          <button onClick={() => setSelected(new Set())}
+            style={{ fontSize: 12, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
+            Clear selection
+          </button>
+        )}
+      </div>
+
+      {/* Question list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto", paddingRight: 2 }}>
+        {!loadingQ && visible.length === 0 && (
+          <p style={{ textAlign: "center", color: "var(--muted)", padding: "32px 0", fontSize: 13 }}>
+            No questions found
+          </p>
         )}
         {visible.map(q => {
           const label = q.programming?.title ?? q.mcq?.body ?? q.id;
           const isSelected = selected.has(q.id);
           return (
             <button key={q.id} onClick={() => toggle(q.id)}
-              className={`w-full text-left flex items-center gap-3 p-2 rounded-lg border transition-colors
-                ${isSelected ? "border-indigo-400 bg-indigo-50" : "border-gray-100 hover:border-gray-300"}`}>
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0
-                ${isSelected ? "border-indigo-600 bg-indigo-600" : "border-gray-300"}`}>
-                {isSelected && <Check size={10} className="text-white" />}
+              style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "10px 12px",
+                border: `1.5px solid ${isSelected ? "var(--accent)" : "var(--line)"}`,
+                borderRadius: 8, background: isSelected ? "var(--accent-light)" : "var(--panel)",
+                cursor: "pointer", textAlign: "left", transition: "all 0.12s",
+              }}>
+              {/* Checkbox */}
+              <div style={{
+                width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                border: `2px solid ${isSelected ? "var(--accent)" : "var(--line)"}`,
+                background: isSelected ? "var(--accent)" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {isSelected && <Check size={10} style={{ color: "#fff" }} />}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800 truncate">{label}</p>
-                <p className="text-xs text-gray-400">{q.type} · {q.topic ?? "—"} · {q.difficulty} · {q.marks}m</p>
+              {/* Icon */}
+              {q.type === "coding"
+                ? <Code2 size={14} style={{ color: "#8b5cf6", flexShrink: 0 }} />
+                : <BookOpen size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />}
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13.5, color: "var(--ink)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
+                  {label}
+                </p>
+                <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "2px 0 0" }}>
+                  {q.type} · {q.topic ?? "—"} · {q.difficulty ?? "—"} · {q.marks ?? 0} marks
+                </p>
               </div>
+              {/* Difficulty badge */}
+              {q.difficulty && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: DIFF_COLOR[q.difficulty] ?? "var(--muted)", flexShrink: 0 }}>
+                  {q.difficulty}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
-      <div className="flex justify-end gap-2 pt-3 border-t mt-3">
-        <button onClick={onClose} className="px-4 py-2 text-sm border rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
-        <button onClick={confirm} disabled={selected.size === 0 || adding}
-          className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-          {adding ? "Adding…" : `Add ${selected.size > 0 ? selected.size : ""} Question${selected.size !== 1 ? "s" : ""}`}
+
+      {/* Footer */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+        <button className="secondary" onClick={onClose}>Cancel</button>
+        <button className="primary" onClick={confirm} disabled={selected.size === 0 || adding}>
+          {adding ? "Adding…" : `Add ${selected.size > 0 ? selected.size + " " : ""}Question${selected.size !== 1 ? "s" : ""}`}
         </button>
       </div>
     </Modal>
   );
 }
 
-// ── Module row (expandable) ───────────────────────────────────────────────────
+// ── Module row ────────────────────────────────────────────────────────────────
 
 function ModuleRow({ mod, token, onRefresh }: {
   mod: PracticeModule; token: string; onRefresh: () => void;
@@ -288,6 +363,7 @@ function ModuleRow({ mod, token, onRefresh }: {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [togglingPublish, setTogglingPublish] = useState(false);
 
   const loadSlots = useCallback(async () => {
     setLoadingSlots(true);
@@ -308,10 +384,15 @@ function ModuleRow({ mod, token, onRefresh }: {
   };
 
   const handlePublishToggle = async () => {
+    setTogglingPublish(true);
     try {
       await updatePracticeModule(token, mod.id, { is_published: !mod.is_published });
       onRefresh();
-    } catch { alert("Failed to update"); }
+    } catch (err: unknown) {
+      alert((err as Error).message || "Failed to update");
+    } finally {
+      setTogglingPublish(false);
+    }
   };
 
   const handleSlotUpdate = async (slot: ModuleQuestionSlot, marks: number, maxAttempts: number) => {
@@ -328,51 +409,82 @@ function ModuleRow({ mod, token, onRefresh }: {
   };
 
   const existingIds = new Set(slots.map(s => s.question_id));
+  const catColor = CAT_COLOR[mod.category] ?? "var(--muted)";
 
   return (
-    <div className="border rounded-xl overflow-hidden">
+    <div style={{ border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "var(--panel)" }}>
       {/* Header row */}
-      <div className="flex items-center gap-3 p-4 bg-white hover:bg-gray-50 cursor-pointer" onClick={toggle}>
-        <span className="text-gray-400">{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
-        <span className="text-gray-500">{open ? <FolderOpen size={18} /> : <Folder size={18} />}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-gray-900 text-sm">{mod.name}</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColor(mod.category)}`}>
-              {categoryLabel(mod.category)}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }}
+        onClick={toggle}>
+        <span style={{ color: "var(--muted)", flexShrink: 0 }}>
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>
+        <span style={{ color: catColor, flexShrink: 0 }}>
+          {open ? <FolderOpen size={18} /> : <Folder size={18} />}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{mod.name}</span>
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+              background: `${catColor}18`, color: catColor,
+            }}>
+              {mod.category.toUpperCase()}
             </span>
-            {mod.tags && mod.tags.split(",").slice(0, 3).map(t => (
-              <span key={t} className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{t.trim()}</span>
-            ))}
             {!mod.is_published && (
-              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Draft</span>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "#fef3c7", color: "#92400e" }}>
+                DRAFT
+              </span>
             )}
+            {mod.tags && mod.tags.split(",").slice(0, 3).map(t => (
+              <span key={t} style={{ fontSize: 11, padding: "2px 7px", borderRadius: 20, background: "var(--bg)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                {t.trim()}
+              </span>
+            ))}
           </div>
-          {mod.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{mod.description}</p>}
+          {mod.description && (
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {mod.description}
+            </p>
+          )}
         </div>
-        {/* Actions (stop propagation so they don't toggle) */}
-        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-          <button onClick={handlePublishToggle} title={mod.is_published ? "Unpublish" : "Publish"}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-            {mod.is_published ? <Eye size={15} /> : <EyeOff size={15} />}
+        {/* Actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}
+          onClick={e => e.stopPropagation()}>
+          <button
+            onClick={handlePublishToggle}
+            disabled={togglingPublish}
+            title={mod.is_published ? "Unpublish" : "Publish"}
+            style={{
+              width: 32, height: 32, border: "1px solid var(--line)", borderRadius: 8,
+              background: "transparent", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              color: mod.is_published ? "var(--accent)" : "var(--muted)",
+              opacity: togglingPublish ? 0.5 : 1,
+            }}>
+            {mod.is_published ? <Eye size={14} /> : <EyeOff size={14} />}
           </button>
           <button onClick={() => setShowEdit(true)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-            <Pencil size={15} />
+            style={{ width: 32, height: 32, border: "1px solid var(--line)", borderRadius: 8, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-2)" }}>
+            <Pencil size={14} />
           </button>
           <button onClick={handleDelete}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
-            <Trash2 size={15} />
+            style={{ width: 32, height: 32, border: "1px solid var(--line)", borderRadius: 8, background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626" }}>
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      {/* Expanded content */}
+      {/* Expanded: question slots */}
       {open && (
-        <div className="border-t bg-gray-50 p-4 space-y-2">
-          {loadingSlots && <p className="text-sm text-gray-400 text-center py-4">Loading…</p>}
+        <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg)", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          {loadingSlots && (
+            <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, padding: "16px 0" }}>Loading…</p>
+          )}
           {!loadingSlots && slots.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">No questions yet. Add some below.</p>
+            <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, padding: "16px 0" }}>
+              No questions yet. Add some below.
+            </p>
           )}
           {slots.map(slot => (
             <SlotRow key={slot.id} slot={slot}
@@ -380,15 +492,19 @@ function ModuleRow({ mod, token, onRefresh }: {
               onUpdate={(m, a) => handleSlotUpdate(slot, m, a)} />
           ))}
           <button onClick={() => setShowAdd(true)}
-            className="w-full flex items-center justify-center gap-2 p-2 border-2 border-dashed border-indigo-200
-              text-indigo-500 hover:border-indigo-400 hover:text-indigo-600 rounded-lg text-sm transition-colors">
-            <Plus size={14} /> Add Questions
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "10px 0", border: "1.5px dashed var(--accent)", borderRadius: 8,
+              background: "var(--accent-light)", color: "var(--accent)",
+              cursor: "pointer", fontSize: 13.5, fontWeight: 600, marginTop: 4,
+            }}>
+            <Plus size={15} /> Add Questions
           </button>
         </div>
       )}
 
       {showEdit && (
-        <Modal title="Edit Folder" onClose={() => setShowEdit(false)}>
+        <Modal open={true} title="Edit Folder" onClose={() => setShowEdit(false)}>
           <ModuleForm
             initial={{ name: mod.name, category: mod.category, description: mod.description, tags: mod.tags, ord: String(mod.ord) }}
             onSave={async d => {
@@ -422,13 +538,14 @@ export default function PracticePanel() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     try { setModules(await listPracticeModules(token)); }
     catch { setError("Failed to load practice folders"); }
     finally { setLoading(false); }
   }, [token]);
 
-  useEffect(() => { if (token) load(); }, [load, token]);
+  useEffect(() => { load(); }, [load]);
 
   const handleCreate = async (d: ModuleFormData) => {
     await createPracticeModule(token, { ...d, ord: Number(d.ord) });
@@ -436,70 +553,67 @@ export default function PracticePanel() {
     load();
   };
 
+  const published = modules.filter(m => m.is_published).length;
+  const draft = modules.filter(m => !m.is_published).length;
+
   return (
-    <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
+    <div>
+      {/* Header */}
+      <div className="titleRow">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Practice Folders</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Organise MCQ and coding questions into topic folders for student practice.
-          </p>
+          <h1>Practice Folders</h1>
+          <p className="pageSubtitle">Organise MCQ and coding questions into topic folders for student practice.</p>
         </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg
-            hover:bg-indigo-700 text-sm font-medium">
-          <Plus size={16} /> New Folder
+        <button className="primary" onClick={() => setShowCreate(true)}>
+          <Plus size={15} /> New Folder
         </button>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
         {[
-          { label: "Total Folders", value: modules.length },
-          { label: "Published", value: modules.filter(m => m.is_published).length },
-          { label: "Draft", value: modules.filter(m => !m.is_published).length },
+          { label: "Total Folders", value: modules.length, color: "var(--accent)" },
+          { label: "Published", value: published, color: "#16a34a" },
+          { label: "Draft", value: draft, color: "#d97706" },
         ].map(s => (
-          <div key={s.label} className="bg-white border rounded-xl p-4">
-            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{s.label}</p>
+          <div key={s.label} className="panel" style={{ padding: "16px 20px" }}>
+            <p style={{ fontSize: 28, fontWeight: 800, color: s.color, margin: "0 0 2px" }}>{s.value}</p>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Error */}
-      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+      {error && <p style={{ color: "#dc2626", background: "#fef2f2", padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</p>}
 
-      {/* Module list */}
+      {/* List */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ height: 58, background: "var(--line)", borderRadius: 12, animation: "pulse 1.5s ease infinite" }} />
+          ))}
         </div>
       ) : modules.length === 0 ? (
-        <div className="text-center py-16 bg-white border rounded-xl">
-          <FolderOpen size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">No practice folders yet</p>
-          <p className="text-sm text-gray-400 mt-1">Create a folder to start organising questions for students.</p>
-          <button onClick={() => setShowCreate(true)}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
-            Create First Folder
+        <div className="panel" style={{ textAlign: "center", padding: "60px 24px" }}>
+          <FolderOpen size={44} style={{ color: "var(--line)", margin: "0 auto 12px" }} />
+          <p style={{ fontWeight: 600, fontSize: 15, color: "var(--ink)", margin: "0 0 6px" }}>No practice folders yet</p>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 20px" }}>Create a folder to start organising questions for students.</p>
+          <button className="primary" onClick={() => setShowCreate(true)}>
+            <Plus size={15} /> Create First Folder
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {modules.map(mod => (
             <ModuleRow key={mod.id} mod={mod} token={token} onRefresh={load} />
           ))}
         </div>
       )}
 
-      {/* Create modal */}
       {showCreate && (
-        <Modal title="New Practice Folder" onClose={() => setShowCreate(false)}>
+        <Modal open={true} title="New Practice Folder" onClose={() => setShowCreate(false)}>
           <ModuleForm onSave={handleCreate} onCancel={() => setShowCreate(false)} />
         </Modal>
       )}
     </div>
   );
 }
-
