@@ -61,6 +61,11 @@ export type Assessment = {
   status: string;
   duration_minutes?: number;
   total_marks?: number;
+  passing_marks?: number;
+  negative_marking?: boolean;
+  negative_marks?: number;
+  shuffle_questions?: boolean;
+  coding_scoring_mode?: string;
 };
 
 export type DashboardStats = {
