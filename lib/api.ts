@@ -261,6 +261,15 @@ export async function assignAssessment(token: string, id: string, targetType: st
   });
 }
 
+export async function updateAssessmentQuestion(token: string, assessmentId: string, questionId: string, body: {
+  coding_time_limit_minutes?: number; marks?: number; ord?: number;
+}) {
+  return apiFetch<{ updated: boolean }>(`/assessments/${assessmentId}/questions/${questionId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(body)
+  });
+}
+
 export async function attachAssessmentQuestions(token: string, id: string, questionIds: string[]) {
   return apiFetch<{ attached: number }>(`/assessments/${id}/questions`, token, {
     method: "POST",
