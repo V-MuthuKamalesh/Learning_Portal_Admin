@@ -503,5 +503,3 @@ export default function PracticePanel() {
   );
 }
 
-// re-export type so pages can use it
-type ModuleFormData = { name: string; category: string; description: string; tags: string; ord: string };
